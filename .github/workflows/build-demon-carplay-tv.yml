@@ -1,0 +1,33 @@
+name: Build DEMON CarPlay TV IPA
+on:
+  push:
+    branches: [build/demon-carplay-tv-v02]
+  pull_request:
+    paths: ['carplay-tv/**', '.github/workflows/build-demon-carplay-tv.yml']
+  workflow_dispatch:
+jobs:
+  ios-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: carplay-tv
+        run: xcodegen generate
+      - name: Build iOS application
+        working-directory: carplay-tv
+        run: |
+          xcodebuild -project DEMONCarPlayTV.xcodeproj -scheme DEMONCarPlayTV -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - name: Package unsigned IPA for inspection
+        working-directory: carplay-tv
+        run: |
+          mkdir -p payload/Payload
+          cp -R build/Build/Products/Release-iphoneos/DEMONCarPlayTV.app payload/Payload/
+          cd payload
+          zip -qr ../DEMON_CarPlay_TV_UNSIGNED.ipa Payload
+          unzip -t ../DEMON_CarPlay_TV_UNSIGNED.ipa | tail -n 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DEMON-CarPlay-TV-unsigned-IPA
+          path: carplay-tv/DEMON_CarPlay_TV_UNSIGNED.ipa
